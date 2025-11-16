@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RifqyNews</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>RifqyNews</h1>
+      <p>Berita Indonesia</p>
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Cari berita..." />
+        <button onclick="searchNews()">Cari</button>
+      </div>
+    </header>
+
+    <nav class="categories">
+      <button class="active" onclick="loadCategory('general')">Umum</button>
+      <button onclick="loadCategory('entertainment')">Hiburan</button>
+      <button onclick="loadCategory('sports')">Olahraga</button>
+      <button onclick="loadCategory('technology')">Tekno</button>
+      <button onclick="loadCategory('health')">Kesehatan</button>
+      <button onclick="loadCategory('business')">Bisnis</button>
+    </nav>
+
+    <div id="news-container" class="news-grid"></div>
+
+    <div id="loading" class="loading hidden">Memuat berita...</div>
+    <div id="offline" class="offline hidden">Kamu offline. Menampilkan berita terakhir.</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
