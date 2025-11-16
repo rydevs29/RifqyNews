@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RifqyNews</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#121212; --text:#f0f0f0; --muted:#bdbdbd; --card:#1c1c1c; --border:#2a2a2a; --accent:#007bff; --ok:#22c55e;
+    }
+    *{ box-sizing:border-box }
+    html,body{ margin:0; padding:0; font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); }
+    .container{ max-width:1000px; margin:0 auto; padding:16px; }
+    header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    header h1{ margin:0; font-size:1.4rem; }
+    .controls{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btn{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-weight:600; cursor:pointer; }
+    .btn.secondary{ background:#3a3a3a; }
+    .chipbar{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+    .chip{ padding:8px 12px; border-radius:999px; border:1px solid var(--border); background:#181818; cursor:pointer; font-weight:600; color:var(--text); }
+    .chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+    .searchbar{ display:flex; gap:8px; margin:12px 0; }
+    input[type="text"]{ flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:#141414; color:var(--text); }
+    .grid{ display:grid; grid-template-columns:1fr; gap:12px; }
+    @media(min-width:720px){ .grid{ grid-template-columns:1fr 1fr; } }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; gap:12px; }
+    .thumb{ width:120px; height:80px; border-radius:8px; background:#101010; object-fit:cover; border:1px solid var(--border); flex-shrink:0; }
+    .meta{ display:flex; flex-direction:column; gap:6px; }
+    .title{ font-weight:600; margin:0; font-size:1rem; }
+    .desc{ margin:0; color:var(--muted); font-size:0.9rem; }
+    .itembar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .tag{ font-size:0.75rem; padding:4px 8px; border-radius:999px; background:#161616; border:1px solid var(--border); color:var(--muted); }
+    .actions{ margin-top:6px; display:flex; gap:8px; }
+    .link{ text-decoration:none; color:#fff; }
+    .bookmark{ padding:6px 10px; background:#161616; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.85rem; }
+    .empty{ text-align:center; color:var(--muted); padding:20px; border:1px dashed var(--border); border-radius:12px; }
+    .section-title{ margin:18px 0 8px; font-size:1.05rem; font-weight:600; }
+    .footer{ margin-top:18px; text-align:center; font-size:0.85rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📰 RifqyNews</h1>
+      <div class="controls">
+        <button id="toggleTheme" class="btn secondary">🌗 Mode</button>
+        <button id="refreshBtn" class="btn">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <div class="chipbar" id="categories">
+      <button class="chip active" data-cat="general">General</button>
+      <button class="chip" data-cat="technology">Technology</button>
+      <button class="chip" data-cat="sports">Sports</button>
+      <button class="chip" data-cat="business">Business</button>
+      <button class="chip" data-cat="entertainment">Entertainment</button>
+      <button class="chip" data-cat="science">Science</button>
+      <button class="chip" data-cat="health">Health</button>
+    </div>
+
+    <div class="searchbar">
+      <input id="searchInput" type="text" placeholder="Cari berita... (misalnya: AI, Jakarta, crypto)"/>
+      <button id="searchBtn" class="btn secondary">🔎 Cari</button>
+      <button id="clearBtn" class="btn secondary">✖️ Clear</button>
+    </div>
+
+    <div id="status" class="empty" style="display:none"></div>
+
+    <div class="section-title">Terbaru</div>
+    <div id="newsGrid" class="grid"></div>
+
+    <div class="section-title">Bookmark</div>
+    <div id="bookmarksGrid" class="grid"></div>
+
+    <p class="footer">© 2025 RifqyDev. All Rights Reserved</p>
+  </div>
+
+  <script>
+    // -----------------------------
+    // Theme toggle
+    // -----------------------------
+    (function(){
+      const btn = document.getElementById('toggleTheme');
+      const saved = localStorage.getItem('rifqyTheme');
+      if (saved === 'light') setTheme('light');
+      btn.addEventListener('click', () => {
+        const current = localStorage.getItem('rifqyTheme') || 'dark';
+        setTheme(current === 'dark' ? 'light' : 'dark');
+      });
+      function setTheme(mode){
+        const root = document.documentElement.style;
+        if (mode==='light'){
+          root.setProperty('--bg', '#f4f4f4');
+          root.setProperty('--text', '#111');
+          root.setProperty('--muted', '#555');
+          root.setProperty('--card', '#ffffff');
+          root.setProperty('--border', '#e5e5e5');
+          localStorage.setItem('rifqyTheme','light');
+        } else {
+          root.setProperty('--bg', '#121212');
+          root.setProperty('--text', '#f0f0f0');
+          root.setProperty('--muted', '#bdbdbd');
+          root.setProperty('--card', '#1c1c1c');
+          root.setProperty('--border', '#2a2a2a');
+          localStorage.setItem('rifqyTheme','dark');
+        }
+      }
+    })();
+
+    // -----------------------------
+    // Config & State
+    // -----------------------------
+    const API_KEY = ''; // Taruh API key NewsAPI atau lainnya di sini jika tersedia
+    const API_BASE = 'https://newsapi.org/v2/top-headlines';
+    const DEFAULT_COUNTRY = 'id';
+    const state = {
+      category: 'general',
+      query: '',
+      items: [],
+      bookmarks: loadBookmarks(),
+      lastFetch: 0
+    };
+
+    const els = {
+      grid: document.getElementById('newsGrid'),
+      bookmarksGrid: document.getElementById('bookmarksGrid'),
+      status: document.getElementById('status'),
+      chips: document.querySelectorAll('#categories .chip'),
+      refresh: document.getElementById('refreshBtn'),
+      searchInput: document.getElementById('searchInput'),
+      searchBtn: document.getElementById('searchBtn'),
+      clearBtn: document.getElementById('clearBtn')
+    };
+
+    // -----------------------------
+    // Event bindings
+    // -----------------------------
+    els.chips.forEach(ch => {
+      ch.addEventListener('click', () => {
+        els.chips.forEach(c => c.classList.remove('active'));
+        ch.classList.add('active');
+        state.category = ch.dataset.cat;
+        state.query = '';
+        els.searchInput.value = '';
+        fetchNews();
+      });
+    });
+
+    els.refresh.addEventListener('click', () => fetchNews(true));
+    els.searchBtn.addEventListener('click', () => {
+      state.query = (els.searchInput.value || '').trim();
+      fetchNews();
+    });
+    els.clearBtn.addEventListener('click', () => {
+      state.query = '';
+      els.searchInput.value = '';
+      fetchNews();
+    });
+
+    // -----------------------------
+    // Bookmarks
+    // -----------------------------
+    function loadBookmarks(){
+      try {
+        return JSON.parse(localStorage.getItem('rifqyNewsBookmarks') || '[]');
+      } catch(e){ return []; }
+    }
+    function saveBookmarks(){
+      localStorage.setItem('rifqyNewsBookmarks', JSON.stringify(state.bookmarks));
+    }
+    function isBookmarked(url){ return state.bookmarks.some(b => b.url === url); }
+    function toggleBookmark(item){
+      const idx = state.bookmarks.findIndex(b => b.url === item.url);
+      if (idx >= 0) state.bookmarks.splice(idx,1);
+      else state.bookmarks.push(item);
+      saveBookmarks();
+      renderBookmarks();
+      renderNews(state.items); // update button state
+    }
+
+    // -----------------------------
+    // Fetch news with graceful fallback
+    // -----------------------------
+    async function fetchNews(force=false){
+      showStatus('Memuat berita...', true);
+      els.grid.innerHTML = '';
+      const now = Date.now();
+      const useCache = !force && state.items.length && (now - state.lastFetch < 5*60*1000);
+      if (useCache){
+        showStatus('', false);
+        renderNews(state.items);
+        return;
+      }
+
+      // If no API key, fall back to sample data
+      if (!API_KEY){
+        const sample = sampleArticles(state.category, state.query);
+        state.items = sample;
+        state.lastFetch = now;
+        showStatus(sample.length ? '' : 'Tidak ada hasil untuk pencarian ini.', !!sample.length ? false : true);
+        renderNews(sample);
+        return;
+      }
+
+      const url = new URL(API_BASE);
+      url.searchParams.set('country', DEFAULT_COUNTRY);
+      url.searchParams.set('category', state.category);
+      if (state.query) url.searchParams.set('q', state.query);
+      try {
+        const res = await fetch(url.toString(), { headers: { 'X-Api-Key': API_KEY }});
+        const data = await res.json();
+        const articles = (data.articles || []).map(mapArticle);
+        state.items = articles;
+        state.lastFetch = now;
+        showStatus(articles.length ? '' : 'Tidak ada hasil untuk pencarian ini.', !!articles.length ? false : true);
+        renderNews(articles);
+      } catch (e){
+        const sample = sampleArticles(state.category, state.query);
+        state.items = sample;
+        showStatus('Gagal memuat API. Menampilkan data contoh.', true);
+        renderNews(sample);
+      }
+    }
+
+    function mapArticle(a){
+      return {
+        title: a.title || 'Tanpa judul',
+        description: a.description || '',
+        url: a.url || '#',
+        urlToImage: a.urlToImage || '',
+        source: a.source?.name || 'Unknown',
+        publishedAt: a.publishedAt || '',
+        category: state.category
+      };
+    }
+
+    // -----------------------------
+    // Rendering
+    // -----------------------------
+    function renderNews(items){
+      els.grid.innerHTML = '';
+      if (!items.length){
+        els.grid.innerHTML = `<div class="empty">Belum ada berita untuk kategori ini.</div>`;
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      items.forEach(item => frag.appendChild(card(item)));
+      els.grid.appendChild(frag);
+    }
+
+    function renderBookmarks(){
+      els.bookmarksGrid.innerHTML = '';
+      if (!state.bookmarks.length){
+        els.bookmarksGrid.innerHTML = `<div class="empty">Belum ada bookmark. Tandai artikel favoritmu.</div>`;
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      state.bookmarks.forEach(item => frag.appendChild(card(item, true)));
+      els.bookmarksGrid.appendChild(frag);
+    }
+
+    function card(item, fromBookmark=false){
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <img class="thumb" src="${item.urlToImage || placeholderImage(item.category)}" alt="">
+        <div class="meta">
+          <h3 class="title">${escapeHTML(item.title)}</h3>
+          <div class="itembar">
+            <span class="tag">${escapeHTML(item.source)}</span>
+            ${item.publishedAt ? `<span class="tag">${formatDate(item.publishedAt)}</span>` : ''}
+            <span class="tag">${escapeHTML(item.category || 'General')}</span>
+          </div>
+          <p class="desc">${escapeHTML(item.description || '')}</p>
+          <div class="actions">
+            <a class="link btn" href="${item.url}" target="_blank" rel="noopener">Baca</a>
+            <button class="bookmark">${isBookmarked(item.url) ? '★ Hapus Bookmark' : '☆ Bookmark'}</button>
+          </div>
+        </div>
+      `;
+      const btn = el.querySelector('.bookmark');
+      btn.addEventListener('click', () => toggleBookmark(item));
+      return el;
+    }
+
+    function showStatus(text, visible){
+      els.status.style.display = visible ? 'block' : 'none';
+      els.status.textContent = text || '';
+    }
+
+    function formatDate(s){
+      const d = new Date(s);
+      if (isNaN(d)) return '';
+      return d.toLocaleString('id-ID', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function escapeHTML(str){
+      return (str || '').toString()
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+    }
+
+    function placeholderImage(cat){
+      const map = {
+        general:'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop',
+        technology:'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600&auto=format&fit=crop',
+        sports:'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600&auto=format&fit=crop',
+        business:'https://images.unsplash.com/photo-1556742400-b5c7c1a8f0b7?q=80&w=600&auto=format&fit=crop',
+        entertainment:'https://images.unsplash.com/photo-1516280030429-27679b3dc9c3?q=80&w=600&auto=format&fit=crop',
+        science:'https://images.unsplash.com/photo-1581094489696-7c54a7b75b4c?q=80&w=600&auto=format&fit=crop',
+        health:'https://images.unsplash.com/photo-1519494080410-f9aa76c7e84c?q=80&w=600&auto=format&fit=crop'
+      };
+      return map[cat] || map.general;
+    }
+
+    // -----------------------------
+    // Sample data (fallback)
+    // -----------------------------
+    function sampleArticles(category='general', query=''){
+      const base = [
+        {
+          title:'Teknologi AI dorong produktivitas developer di Indonesia',
+          description:'Studi terbaru menunjukkan adopsi AI meningkat di kalangan developer lokal.',
+          url:'https://example.com/ai-indonesia',
+          urlToImage:'',
+          source:'RifqyDev Times',
+          publishedAt:new Date().toISOString(),
+          category:'technology'
+        },
+        {
+          title:'Startup fintech raih pendanaan seri B',
+          description:'Pendanaan baru diprediksi memperluas layanan pembayaran digital.',
+          url:'https://example.com/fintech-b-series',
+          urlToImage:'',
+          source:'BizDaily',
+          publishedAt:new Date(Date.now()-86400000).toISOString(),
+          category:'business'
+        },
+        {
+          title:'Tim nasional raih kemenangan dramatis',
+          description:'Pertandingan berakhir dengan skor tipis setelah babak tambahan.',
+          url:'https://example.com/timnas-menang',
+          urlToImage:'',
+          source:'SportNow',
+          publishedAt:new Date(Date.now()-2*86400000).toISOString(),
+          category:'sports'
+        },
+        {
+          title:'Peneliti temukan material baru untuk baterai',
+          description:'Material ini diklaim meningkatkan densitas energi hingga 20%.',
+          url:'https://example.com/material-baterai',
+          urlToImage:'',
+          source:'SciUpdate',
+          publishedAt:new Date(Date.now()-3*86400000).toISOString(),
+          category:'science'
+        },
+        {
+          title:'Festival film hadirkan karya-karya independen',
+          description:'Sutradara muda tampilkan narasi segar dalam format eksperimental.',
+          url:'https://example.com/festival-film',
+          urlToImage:'',
+          source:'EntertainMag',
+          publishedAt:new Date(Date.now()-4*86400000).toISOString(),
+          category:'entertainment'
+        },
+        {
+          title:'Tips menjaga kesehatan selama musim hujan',
+          description:'Ahli menyarankan pola tidur dan asupan nutrisi seimbang.',
+          url:'https://example.com/kesehatan-musim-hujan',
+          urlToImage:'',
+          source:'HealthDaily',
+          publishedAt:new Date(Date.now()-5*86400000).toISOString(),
+          category:'health'
+        },
+        {
+          title:'Kebijakan baru transportasi umum di Jakarta',
+          description:'Penyesuaian rute dan jadwal untuk mengurangi kemacetan.',
+          url:'https://example.com/transportasi-jakarta',
+          urlToImage:'',
+          source:'MetroNews',
+          publishedAt:new Date(Date.now()-6*86400000).toISOString(),
+          category:'general'
+        }
+      ];
+      let data = base.filter(a => category ? a.category === category : true);
+      if (query){
+        const q = query.toLowerCase();
+        data = data.filter(a =>
+          a.title.toLowerCase().includes(q) ||
+          (a.description || '').toLowerCase().includes(q) ||
+          (a.source || '').toLowerCase().includes(q)
+        );
+      }
+      return data;
+    }
+
+    // Init
+    renderBookmarks();
+    fetchNews();
+  </script>
+</body>
+</html>
